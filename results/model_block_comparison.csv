@@ -1,0 +1,7 @@
+Model block,n,Adj. R2,AIC
+Clinical only,176,0.257,976.2
+Laboratory only,176,-0.008,1029.0
+Ultrasound only,176,0.046,1019.3
+Clinical + lab,176,0.241,984.7
+Clinical + ultrasound,176,0.269,978.0
+Full multimodal,176,0.255,986.0

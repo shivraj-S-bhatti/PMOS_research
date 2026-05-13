@@ -1,0 +1,8 @@
+Variable,PCOS mean,Non-PCOS mean,p
+BMI,25.471,23.747,$<0.001$
+AMH,7.845,4.541,$<0.001$
+Waist:hip ratio,0.893,0.891,0.774
+Total follicles,20.548,8.989,$<0.001$
+Weight gain,0.684,0.228,$<0.001$
+Fast food,0.785,0.383,$<0.001$
+Irregular cycle,0.531,0.154,$<0.001$

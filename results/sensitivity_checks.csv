@@ -1,0 +1,4 @@
+Sensitivity check,n,Adj. R2,Weight gain beta,Weight gain p
+Original full model,176,0.255,4.195,$<0.001$
+Log AMH and log LH/FSH,176,0.258,4.154,$<0.001$
+Exclude BMI IQR outliers,171,0.24,3.441,$<0.001$

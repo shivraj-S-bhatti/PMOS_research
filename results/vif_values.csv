@@ -1,0 +1,14 @@
+variable,VIF
+const,468.514
+age,1.218
+waist_hip_ratio,1.231
+amh,1.105
+lh_fsh_ratio,1.059
+tsh,1.023
+prl,1.092
+rbs,1.046
+weight_gain,1.199
+fast_food,1.19
+regular_exercise,1.188
+total_follicles,1.032
+cycle_group_Regular,1.123

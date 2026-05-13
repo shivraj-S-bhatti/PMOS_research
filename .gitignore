@@ -1,0 +1,21 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local caches and generated intermediates
+.cache/
+.kagglehub/
+.mplconfig/
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Raw data is downloaded from Kaggle by the script.
+data/raw/
+

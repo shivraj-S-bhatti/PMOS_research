@@ -1,0 +1,10 @@
+kagglehub
+matplotlib
+numpy
+openpyxl
+pandas
+scipy
+seaborn
+statsmodels
+tabulate
+

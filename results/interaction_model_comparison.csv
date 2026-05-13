@@ -1,0 +1,5 @@
+Model,n,Adj. R2,AIC
+Clinical base,176,0.257,976.2
+Cycle x weight gain,176,0.261,976.2
+Fast food x exercise,176,0.265,975.3
+AMH x follicles,176,0.264,985.7
