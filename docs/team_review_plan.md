@@ -10,6 +10,7 @@ https://github.com/shivraj-S-bhatti/PMOS_research
 
 The main files to review are:
 
+- `docs/team_first_run_reference.md`
 - `reports/pcos_bmi_team_brief.pdf`
 - `reports/pcos_bmi_team_brief.tex`
 - `src/pcos_bmi_analysis.py`
@@ -123,4 +124,3 @@ Optional extension:
 - Person C: verify references and build IEEE bibliography.
 - Person D: inspect Mendeley dataset availability.
 - Person E: help trim final paper to <= 6 pages.
-

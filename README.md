@@ -28,6 +28,8 @@ coverage audit, and two PCOS/PMOS-status classification context models.
   IEEE-style paper outline
 - `docs/dataset_audit_and_followup.md` - audit of the two Kaggle files and
   follow-up dataset leads
+- `docs/team_first_run_reference.md` - team-facing index of first-run outputs
+  and key results
 - `docs/team_review_plan.md` - teammate review checklist and next experiments
 - `docs/stats_learning_cheatsheet.md` - compact personal STAT 501 method picker
 
