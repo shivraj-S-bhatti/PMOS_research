@@ -19,6 +19,8 @@ BMI subgroup checks, interaction models, and sensitivity checks.
 - `figures/` - generated analysis plots
 - `results/` - generated CSV result tables
 - `data/README.md` - data source notes
+- `docs/dataset_audit_and_followup.md` - audit of the two Kaggle files and
+  follow-up dataset leads
 
 ## Data Source
 
@@ -54,5 +56,8 @@ tectonic pcos_bmi_team_brief.tex
 - Fasting insulin and testosterone were mentioned in the original proposal but
   are not present in this workbook, so the first run uses available clinical,
   hormonal, lifestyle, and ultrasound variables.
+- The second Kaggle infertility CSV was audited. It appears to contain the same
+  541 patients with patient file numbers offset by 10000 and duplicate
+  AMH/beta-HCG fields; it does not add insulin or testosterone.
 - Results are exploratory and should not be interpreted as causal or clinical
   proof.
