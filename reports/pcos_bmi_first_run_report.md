@@ -165,9 +165,26 @@ Tukey HSD not run because the overall ANOVA was not significant.
 | Log AMH and log LH/FSH   | 176 |     0.258 |              4.154 | $<0.001$        |
 | Exclude BMI IQR outliers | 171 |     0.24  |              3.441 | $<0.001$        |
 
+### PMOS Construct Coverage Audit
+
+| PMOS domain                     | Coverage   | Measured variables                                                                       | Major gaps                                                 |
+|:--------------------------------|:-----------|:-----------------------------------------------------------------------------------------|:-----------------------------------------------------------|
+| Reproductive / ovarian          | Strong     | cycle regularity, cycle length, follicles, follicle size, endometrium, pregnancy history | diagnostic visit notes and formal phenotype labels         |
+| Endocrine                       | Partial    | AMH, FSH, LH, FSH/LH, TSH, PRL, PRG, beta-HCG                                            | testosterone, SHBG, DHEAS, free androgen index             |
+| Metabolic / cardiovascular      | Weak proxy | BMI, waist:hip ratio, RBS, BP, weight gain, fast food, exercise                          | fasting insulin, fasting glucose, HOMA-IR, OGTT, lipids    |
+| Dermatological / symptoms       | Partial    | hair growth, skin darkening, hair loss, pimples                                          | standardized hirsutism/acne scales                         |
+| Psychological / quality of life | Absent     | none                                                                                     | depression, anxiety, sleep, stigma, quality-of-life scales |
+
+### PCOS/PMOS Status Classifier Context
+
+| Model               |   n_complete |   n_train |   n_test | fit_method   |   AUC |   Brier score |   Accuracy |   Sensitivity |   Specificity |   Precision |
+|:--------------------|-------------:|----------:|---------:|:-------------|------:|--------------:|-----------:|--------------:|--------------:|------------:|
+| Ovary-centric       |          540 |       378 |      162 | GLM binomial | 0.919 |         0.106 |      0.864 |         0.792 |         0.899 |       0.792 |
+| Metabolic + symptom |          540 |       378 |      162 | GLM binomial | 0.86  |         0.135 |      0.833 |         0.736 |         0.881 |       0.75  |
+
 ## First-Run Interpretation
 
-Waist-to-hip ratio had only a weak, non-significant linear association with BMI in this PCOS-positive subset. The two-sample t-test suggested higher mean BMI for irregular cycles than regular cycles, but this difference was smaller after adjusting for other variables in the multiple regression. Follicle-count group did not show a statistically significant difference in mean BMI by one-way ANOVA. In the multiple linear regression, self-reported weight gain was the clearest predictor of BMI, and the reduced model had a slightly higher adjusted R-squared than the larger candidate model. The next best improvement is to confirm whether another file/version contains fasting insulin and testosterone, then rerun the candidate-predictor model.
+Waist-to-hip ratio had only a weak, non-significant linear association with BMI in this PCOS-positive subset. The two-sample t-test suggested higher mean BMI for irregular cycles than regular cycles, but this difference was smaller after adjusting for other variables in the multiple regression. Follicle-count group did not show a statistically significant difference in mean BMI by one-way ANOVA. In the multiple linear regression, self-reported weight gain was the clearest predictor of BMI, and the reduced model had a slightly higher adjusted R-squared than the larger candidate model. The PMOS-era interpretation is that the public Kaggle variables are stronger for reproductive/ovarian classification than for metabolic-mechanism BMI modeling because fasting insulin, fasting glucose, HOMA-IR, lipids, and testosterone are absent.
 
 ## Figures
 
@@ -177,6 +194,10 @@ Waist-to-hip ratio had only a weak, non-significant linear association with BMI 
 - [bmi_by_follicle_group.png](../figures/bmi_by_follicle_group.png)
 - [bmi_distribution.png](../figures/bmi_distribution.png)
 - [bmi_vs_waist_hip_ratio.png](../figures/bmi_vs_waist_hip_ratio.png)
+- [classifier_calibration.png](../figures/classifier_calibration.png)
+- [classifier_roc_curves.png](../figures/classifier_roc_curves.png)
 - [model_block_adjusted_r2.png](../figures/model_block_adjusted_r2.png)
+- [multiple_regression_diagnostics.png](../figures/multiple_regression_diagnostics.png)
 - [multiple_regression_qq.png](../figures/multiple_regression_qq.png)
 - [multiple_regression_residuals.png](../figures/multiple_regression_residuals.png)
+- [pmos_construct_coverage.png](../figures/pmos_construct_coverage.png)

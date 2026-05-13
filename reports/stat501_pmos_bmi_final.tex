@@ -1,0 +1,133 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{xurl}
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{array}
+\hypersetup{colorlinks=true,urlcolor=blue,citecolor=blue,linkcolor=blue}
+
+\title{Clinical and Hormonal Predictors of BMI in PCOS/PMOS: A Statistical Analysis and Dataset Coverage Audit}
+\author{\IEEEauthorblockN{Soumitra Das, Shreya Saha, Anjali Kanvinde, Shivraj Singh Bhatti, Pranav Jeyakumar}
+\IEEEauthorblockA{STAT 501 Final Project}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The 2026 renaming of polycystic ovary syndrome (PCOS) to polyendocrine metabolic ovarian syndrome (PMOS) emphasizes that the condition is endocrine, metabolic, reproductive, dermatological, and psychological. We analyze a widely used Kaggle PCOS dataset to ask which measured variables are associated with BMI among PCOS-positive participants and whether the dataset contains the biosignals needed for PMOS-era metabolic modeling. The analysis uses descriptive statistics, simple regression, Welch's two-sample t-test, one-way ANOVA, multiple linear regression, adjusted $R^2$, VIF, residual diagnostics, and a construct coverage audit. Self-reported weight gain is the dominant BMI-associated predictor; the available laboratory block explains almost none of the BMI variation. We interpret this as a dataset limitation, not evidence against metabolic mechanisms in PMOS.
+\end{abstract}
+
+\section{Introduction}
+PCOS was renamed PMOS in May 2026 to reduce the misleading emphasis on ovarian cysts and to foreground endocrine and metabolic features \cite{endocrine,monash}. This creates a useful statistical question: does a popular PCOS dataset measure the domains now emphasized by PMOS? Our original course question remains BMI-focused: among PCOS-positive participants, which clinical, hormonal, lifestyle, and ultrasound variables are associated with BMI?
+
+\section{Data and Methods}
+We used the Kaggle PCOS dataset by Kottarathil \cite{kaggle}. The main workbook has 541 rows and 45 columns; the BMI analysis is restricted to 177 PCOS-positive rows. A second infertility file was audited separately and appears to contain the same patients with patient IDs offset by 10000 and duplicate AMH/beta-HCG fields, so it does not add fasting insulin, testosterone, fasting glucose, or HOMA-IR.
+
+BMI was treated as a numerical response. We inspected its distribution, fit a simple linear regression with waist-to-hip ratio, used a Welch t-test for cycle regularity, used one-way ANOVA across total follicle-count groups, and fit multiple regression models with clinical, laboratory, ultrasound, and combined predictor blocks. Multicollinearity was assessed by VIF and model adequacy by residual and Q-Q plots.
+
+\section{Results}
+\begin{table}[t]
+\caption{Primary STAT 501 results.}
+\label{tab:prof-summary}
+\small\resizebox{\columnwidth}{!}{\begin{tabular}{ll}
+\toprule
+Analysis & Result \\
+\midrule
+BMI distribution & mean 25.47, SD 4.40, skew 0.232 \\
+Simple regression & WHR slope 7.93, R2 0.007, p 0.2678 \\
+Welch t-test & irregular mean 26.28 vs regular 24.53, p 0.0076 \\
+One-way ANOVA & follicle groups F 0.10, p 0.9039 \\
+Multiple regression & full adj. R2 0.237; clinical adj. R2 0.260; weight gain p <0.001 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../figures/bmi_distribution.png}
+\caption{BMI distribution among PCOS-positive participants.}
+\label{fig:bmi-dist}
+\end{figure}
+
+The BMI distribution was only mildly right-skewed. Waist-to-hip ratio had a weak, non-significant simple linear association with BMI. The Welch test suggested higher mean BMI among participants with irregular cycles, but this difference was reduced after adjustment. Follicle-count group did not show a significant ANOVA result, so Tukey post-hoc comparisons were not warranted.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../figures/model_block_adjusted_r2.png}
+\caption{Adjusted $R^2$ by BMI predictor block.}
+\label{fig:block}
+\end{figure}
+
+\begin{table}[t]
+\caption{BMI model comparison by predictor block.}
+\label{tab:block-final}
+\small\resizebox{\columnwidth}{!}{\begin{tabular}{lrrr}
+\toprule
+Model block & n & Adj. R2 & AIC \\
+\midrule
+Clinical only & 176 & 0.257 & 976.200 \\
+Laboratory only & 176 & -0.008 & 1029.000 \\
+Ultrasound only & 176 & 0.046 & 1019.300 \\
+Clinical + lab & 176 & 0.241 & 984.700 \\
+Clinical + ultrasound & 176 & 0.269 & 978.000 \\
+Full multimodal & 176 & 0.255 & 986.000 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+
+The clinical-only block had the strongest adjusted $R^2$ among compact models. The laboratory-only model had adjusted $R^2=-0.008$, indicating that available labs such as AMH, LH/FSH, TSH, PRL, and RBS did not explain BMI better than an intercept-only baseline. In the full model, non-intercept VIF values were close to 1, so multicollinearity was not the explanation. Residual diagnostics showed no major pattern that would overturn the main exploratory conclusion.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../figures/multiple_regression_diagnostics.png}
+\caption{Residual and Q-Q diagnostics for the multiple regression.}
+\label{fig:diagnostics}
+\end{figure}
+
+\section{PMOS Coverage Audit}
+\begin{table}[t]
+\caption{PMOS construct coverage in the Kaggle variables.}
+\label{tab:coverage-final}
+\small\resizebox{\columnwidth}{!}{\begin{tabular}{lll}
+\toprule
+PMOS domain & Coverage & Major gaps \\
+\midrule
+Reproductive / ovarian & Strong & diagnostic visit notes and formal phenotype labels \\
+Endocrine & Partial & testosterone, SHBG, DHEAS, free androgen index \\
+Metabolic / cardiovascular & Weak proxy & fasting insulin, fasting glucose, HOMA-IR, OGTT, lipids \\
+Dermatological / symptoms & Partial & standardized hirsutism/acne scales \\
+Psychological / quality of life & Absent & depression, anxiety, sleep, stigma, quality-of-life scales \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../figures/pmos_construct_coverage.png}
+\caption{Construct coverage audit under the PMOS framing.}
+\label{fig:coverage}
+\end{figure}
+
+The dataset is strongest on reproductive and ovarian structure variables, partial on endocrine and dermatological symptoms, weak on metabolic/cardiovascular variables, and absent on psychological or quality-of-life measures. Therefore, the weak laboratory BMI result should not be read as evidence that endocrine or metabolic mechanisms are unimportant. Instead, the dataset lacks the main metabolic biosignals emphasized by PMOS: fasting insulin, fasting glucose, HOMA-IR, OGTT, lipids, and detailed androgen measures.
+
+\section{Discussion}
+The most consistent BMI-associated variable was self-reported weight gain. This is plausible as a broad clinical signal, but it is not a mechanistic biomarker. The analysis is cross-sectional and observational, so it estimates association rather than causation. The main value of this project is a statistical and measurement critique: a widely used PCOS dataset can support exploratory BMI modeling and PCOS-status classification, but it is structurally limited for PMOS-era metabolic mechanism analysis.
+
+\section{Conclusion}
+For the course question, clinical variables outperformed the available laboratory variables for BMI prediction among PCOS-positive participants. For the PMOS-era interpretation, the result highlights a data gap: future datasets should include fasting insulin, fasting glucose, HOMA-IR, lipids, blood pressure, androgen assays, and validated mental-health measures to represent PMOS as a multisystem condition.
+
+\clearpage
+\begin{thebibliography}{9}
+\bibitem{endocrine} Endocrine Society, ``Polyendocrine Metabolic Ovarian Syndrome: New name to improve diagnosis and care,'' May 12, 2026. \url{https://www.endocrine.org/news-and-advocacy/news-room/2026/pcos-name-change}
+\bibitem{monash} Monash University, ``Polyendocrine Metabolic Ovarian Syndrome: New name to improve diagnosis and care,'' May 13, 2026. \url{https://www.monash.edu/medicine/news/latest/2026-articles/polyendocrine-metabolic-ovarian-syndrome-new-name-to-improve-diagnosis-and-care-of-condition-affecting-170-million-women-worldwide}
+\bibitem{kaggle} P. Kottarathil, ``Polycystic ovary syndrome (PCOS),'' Kaggle dataset. \url{https://www.kaggle.com/datasets/prasoonkottarathil/polycystic-ovary-syndrome-pcos}
+\bibitem{guideline} H. J. Teede et al., ``Recommendations from the 2023 international evidence-based guideline for the assessment and management of polycystic ovary syndrome,'' \textit{J. Clin. Endocrinol. Metab.}, 2023.
+\bibitem{ml} S. Denny et al., ``Polycystic Ovary Syndrome Detection Machine Learning Model Based on Optimized Feature Selection and Explainable Artificial Intelligence,'' \textit{Diagnostics}, 2023.
+\end{thebibliography}
+\end{document}

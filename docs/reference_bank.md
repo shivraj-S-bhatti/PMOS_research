@@ -12,6 +12,57 @@ Working paper angle:
 > gain dominates. A second insulin/glucose dataset can be used as a replication
 > and extension.
 
+## 0. PMOS Name-Change Hook
+
+Current terminology:
+
+- In May 2026, PCOS was renamed **polyendocrine metabolic ovarian syndrome
+  (PMOS)** through a global consensus process.
+- Use careful wording in the final report: "PMOS, formerly PCOS" for the
+  medical framing, and "PCOS" when referring to the historical Kaggle labels or
+  original dataset fields.
+- The new name is useful for our project because it asks whether older public
+  PCOS datasets actually measure the endocrine, metabolic, reproductive,
+  dermatological, and psychological domains implied by PMOS.
+
+Verified source links:
+
+- Endocrine Society press release, May 12, 2026:
+  https://www.endocrine.org/news-and-advocacy/news-room/2026/pcos-name-change
+- Monash University press release, May 13, 2026:
+  https://www.monash.edu/medicine/news/latest/2026-articles/polyendocrine-metabolic-ovarian-syndrome-new-name-to-improve-diagnosis-and-care-of-condition-affecting-170-million-women-worldwide
+- ABC News explainer, May 12, 2026:
+  https://www.abc.net.au/news/health/2026-05-12/polyendocrine-metabolic-ovarian-syndrome-pcos-new-name/106668902
+- Contemporary OB/GYN summary, May 12, 2026:
+  https://www.contemporaryobgyn.net/view/global-consensus-renames-pcos-to-polyendocrine-metabolic-ovarian-syndrome-pmos-
+
+Claims we can safely use:
+
+- The new name was developed through a global patient/professional consensus
+  process and was published in The Lancet.
+- PMOS emphasizes endocrine, metabolic, reproductive, skin, weight, and mental
+  health impacts.
+- Implementation is expected to transition into international guideline updates,
+  with the Endocrine Society/Monash materials referring to a 2028 guideline
+  implementation horizon.
+- Diagnostic criteria are not the center of our paper; our angle is dataset
+  measurement coverage.
+
+Claims to avoid or qualify:
+
+- Do not imply the Kaggle dataset is invalid because it uses the older PCOS
+  name.
+- Do not imply our BMI regression proves or disproves PMOS biology.
+- Do not write that every source uses identical wording; some popular coverage
+  varies, so cite the Endocrine Society/Monash wording for the final name.
+
+Two-report split:
+
+- STAT 501 report: BMI regression and course methods first, PMOS as framing and
+  limitation.
+- Public value-add brief: PMOS construct coverage and "what the dataset misses"
+  first, BMI/classification results as supporting evidence.
+
 ## 1. Dataset Structure and Kaggle Audit
 
 ### Kaggle Dataset
@@ -282,4 +333,3 @@ Suggested figure/table budget:
 - 1 small table: source matrix.
 - 1 small table: variables present/missing by dataset.
 - No more than 1 figure unless required.
-

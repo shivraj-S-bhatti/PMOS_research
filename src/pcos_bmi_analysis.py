@@ -55,7 +55,13 @@ def clean_columns(df: pd.DataFrame) -> pd.DataFrame:
         "Weight (Kg)": "weight_kg",
         "Height(Cm) ": "height_cm",
         "BMI": "bmi",
+        "Hb(g/dl)": "hb",
         "Cycle(R/I)": "cycle",
+        "Cycle length(days)": "cycle_length",
+        "Pregnant(Y/N)": "pregnant",
+        "No. of aborptions": "abortions",
+        "  I   beta-HCG(mIU/mL)": "beta_hcg_i",
+        "II    beta-HCG(mIU/mL)": "beta_hcg_ii",
         "FSH(mIU/mL)": "fsh",
         "LH(mIU/mL)": "lh",
         "FSH/LH": "fsh_lh",
@@ -66,10 +72,17 @@ def clean_columns(df: pd.DataFrame) -> pd.DataFrame:
         "AMH(ng/mL)": "amh",
         "PRL(ng/mL)": "prl",
         "Vit D3 (ng/mL)": "vit_d3",
+        "PRG(ng/mL)": "prg",
         "RBS(mg/dl)": "rbs",
         "Weight gain(Y/N)": "weight_gain",
+        "hair growth(Y/N)": "hair_growth",
+        "Skin darkening (Y/N)": "skin_darkening",
+        "Hair loss(Y/N)": "hair_loss",
+        "Pimples(Y/N)": "pimples",
         "Fast food (Y/N)": "fast_food",
         "Reg.Exercise(Y/N)": "regular_exercise",
+        "BP _Systolic (mmHg)": "bp_systolic",
+        "BP _Diastolic (mmHg)": "bp_diastolic",
         "Follicle No. (L)": "follicle_l",
         "Follicle No. (R)": "follicle_r",
         "Avg. F size (L) (mm)": "avg_f_size_l",
@@ -84,6 +97,7 @@ def clean_columns(df: pd.DataFrame) -> pd.DataFrame:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
     df["cycle_group"] = df["cycle"].map({2: "Regular", 4: "Irregular"})
+    df["cycle_irregular"] = (df["cycle"] == 4).astype(float)
     df["total_follicles"] = df["follicle_l"] + df["follicle_r"]
     df["lh_fsh_ratio"] = df["lh"] / df["fsh"]
     return df
@@ -146,6 +160,100 @@ def latex_table(df: pd.DataFrame, caption: str, label: str) -> str:
     table = table.replace(r"\begin{tabular}", r"\small\resizebox{\columnwidth}{!}{\begin{tabular}")
     table = table.replace(r"\end{tabular}", r"\end{tabular}}")
     return table
+
+
+def stratified_split(df: pd.DataFrame, target: str, train_frac: float = 0.7, seed: int = 501):
+    rng = np.random.default_rng(seed)
+    train_idx = []
+    test_idx = []
+    for _, group in df.groupby(target):
+        idx = group.index.to_numpy()
+        rng.shuffle(idx)
+        n_train = int(round(train_frac * len(idx)))
+        train_idx.extend(idx[:n_train])
+        test_idx.extend(idx[n_train:])
+    return train_idx, test_idx
+
+
+def auc_score(y_true, y_prob) -> float:
+    y_true = np.asarray(y_true)
+    y_prob = np.asarray(y_prob)
+    n_pos = np.sum(y_true == 1)
+    n_neg = np.sum(y_true == 0)
+    if n_pos == 0 or n_neg == 0:
+        return np.nan
+    ranks = stats.rankdata(y_prob)
+    return (np.sum(ranks[y_true == 1]) - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg)
+
+
+def roc_points(y_true, y_prob) -> pd.DataFrame:
+    y_true = np.asarray(y_true)
+    y_prob = np.asarray(y_prob)
+    thresholds = np.r_[np.inf, np.sort(np.unique(y_prob))[::-1], -np.inf]
+    rows = []
+    for threshold in thresholds:
+        pred = (y_prob >= threshold).astype(int)
+        tp = np.sum((pred == 1) & (y_true == 1))
+        fp = np.sum((pred == 1) & (y_true == 0))
+        tn = np.sum((pred == 0) & (y_true == 0))
+        fn = np.sum((pred == 0) & (y_true == 1))
+        rows.append(
+            {
+                "threshold": threshold,
+                "fpr": fp / (fp + tn) if fp + tn else np.nan,
+                "tpr": tp / (tp + fn) if tp + fn else np.nan,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def fit_logistic_classifier(df: pd.DataFrame, predictors: list[str], target: str = "pcos"):
+    data = df[[target] + predictors].replace([np.inf, -np.inf], np.nan).dropna().copy()
+    train_idx, test_idx = stratified_split(data, target)
+    train = data.loc[train_idx]
+    test = data.loc[test_idx]
+
+    x_train = train[predictors].astype(float)
+    x_test = test[predictors].astype(float)
+    means = x_train.mean()
+    stds = x_train.std(ddof=0).replace(0, 1)
+    x_train = (x_train - means) / stds
+    x_test = (x_test - means) / stds
+    x_train = sm.add_constant(x_train, has_constant="add")
+    x_test = sm.add_constant(x_test, has_constant="add")
+    y_train = train[target].astype(int)
+    y_test = test[target].astype(int)
+
+    model = sm.GLM(y_train, x_train, family=sm.families.Binomial())
+    fit_method = "GLM binomial"
+    try:
+        result = model.fit(maxiter=200, disp=0)
+    except Exception:
+        result = model.fit_regularized(alpha=0.01, L1_wt=0.0, maxiter=1000)
+        fit_method = "Regularized GLM binomial"
+
+    y_prob = np.asarray(result.predict(x_test)).clip(1e-6, 1 - 1e-6)
+    y_pred = (y_prob >= 0.5).astype(int)
+    y_true = y_test.to_numpy()
+    tp = np.sum((y_pred == 1) & (y_true == 1))
+    fp = np.sum((y_pred == 1) & (y_true == 0))
+    tn = np.sum((y_pred == 0) & (y_true == 0))
+    fn = np.sum((y_pred == 0) & (y_true == 1))
+    metrics = {
+        "n_complete": len(data),
+        "n_train": len(train),
+        "n_test": len(test),
+        "fit_method": fit_method,
+        "AUC": auc_score(y_true, y_prob),
+        "Brier score": np.mean((y_prob - y_true) ** 2),
+        "Accuracy": (tp + tn) / len(y_true),
+        "Sensitivity": tp / (tp + fn) if tp + fn else np.nan,
+        "Specificity": tn / (tn + fp) if tn + fp else np.nan,
+        "Precision": tp / (tp + fp) if tp + fp else np.nan,
+    }
+    coef = pd.DataFrame({"term": result.params.index, "standardized_coef": result.params.values})
+    predictions = pd.DataFrame({"y_true": y_true, "y_prob": y_prob})
+    return metrics, coef, predictions
 
 
 def main() -> None:
@@ -462,6 +570,155 @@ def main() -> None:
     plt.title("AMH by PCOS Status")
     savefig("amh_by_pcos_status.png")
 
+    # PMOS-era construct coverage audit: this is a measurement map, not a
+    # biological score. It shows which parts of the renamed syndrome are visible
+    # in the public Kaggle variables.
+    coverage_table = pd.DataFrame(
+        [
+            {
+                "PMOS domain": "Reproductive / ovarian",
+                "Coverage": "Strong",
+                "Score": 3,
+                "Measured variables": "cycle regularity, cycle length, follicles, follicle size, endometrium, pregnancy history",
+                "Major gaps": "diagnostic visit notes and formal phenotype labels",
+            },
+            {
+                "PMOS domain": "Endocrine",
+                "Coverage": "Partial",
+                "Score": 2,
+                "Measured variables": "AMH, FSH, LH, FSH/LH, TSH, PRL, PRG, beta-HCG",
+                "Major gaps": "testosterone, SHBG, DHEAS, free androgen index",
+            },
+            {
+                "PMOS domain": "Metabolic / cardiovascular",
+                "Coverage": "Weak proxy",
+                "Score": 1,
+                "Measured variables": "BMI, waist:hip ratio, RBS, BP, weight gain, fast food, exercise",
+                "Major gaps": "fasting insulin, fasting glucose, HOMA-IR, OGTT, lipids",
+            },
+            {
+                "PMOS domain": "Dermatological / symptoms",
+                "Coverage": "Partial",
+                "Score": 2,
+                "Measured variables": "hair growth, skin darkening, hair loss, pimples",
+                "Major gaps": "standardized hirsutism/acne scales",
+            },
+            {
+                "PMOS domain": "Psychological / quality of life",
+                "Coverage": "Absent",
+                "Score": 0,
+                "Measured variables": "none",
+                "Major gaps": "depression, anxiety, sleep, stigma, quality-of-life scales",
+            },
+        ]
+    )
+
+    coverage_colors = {
+        "Strong": "#2f6f73",
+        "Partial": "#7a9e7e",
+        "Weak proxy": "#d49a3a",
+        "Absent": "#9a4a44",
+    }
+    plt.figure(figsize=(8, 4.8))
+    plot_cov = coverage_table.sort_values("Score")
+    bars = plt.barh(
+        plot_cov["PMOS domain"],
+        plot_cov["Score"],
+        color=[coverage_colors[c] for c in plot_cov["Coverage"]],
+    )
+    plt.xlim(0, 3.35)
+    plt.xticks([0, 1, 2, 3], ["Absent", "Weak", "Partial", "Strong"])
+    plt.xlabel("Construct coverage in Kaggle PCOS variables")
+    plt.title("PMOS Construct Coverage Audit")
+    for bar, label in zip(bars, plot_cov["Coverage"]):
+        plt.text(bar.get_width() + 0.05, bar.get_y() + bar.get_height() / 2, label, va="center")
+    savefig("pmos_construct_coverage.png")
+
+    classifier_specs = {
+        "Ovary-centric": [
+            "age",
+            "amh",
+            "total_follicles",
+            "lh_fsh_ratio",
+            "cycle_irregular",
+        ],
+        "Metabolic + symptom": [
+            "bmi",
+            "waist_hip_ratio",
+            "weight_gain",
+            "fast_food",
+            "regular_exercise",
+            "skin_darkening",
+            "hair_growth",
+            "hair_loss",
+            "pimples",
+            "bp_systolic",
+            "bp_diastolic",
+        ],
+    }
+    classifier_rows = []
+    classifier_coef_rows = []
+    classifier_prediction_frames = []
+    roc_frames = []
+    calibration_rows = []
+    for model_name, predictors in classifier_specs.items():
+        metrics, coefs, predictions = fit_logistic_classifier(df, predictors)
+        classifier_rows.append({"Model": model_name, **metrics})
+        coefs.insert(0, "Model", model_name)
+        classifier_coef_rows.append(coefs)
+        predictions.insert(0, "Model", model_name)
+        classifier_prediction_frames.append(predictions)
+
+        roc = roc_points(predictions["y_true"], predictions["y_prob"])
+        roc.insert(0, "Model", model_name)
+        roc_frames.append(roc)
+
+        cal = predictions.copy()
+        cal["bin"] = pd.qcut(cal["y_prob"].rank(method="first"), q=5, labels=False)
+        grouped = cal.groupby("bin").agg(
+            mean_pred=("y_prob", "mean"),
+            observed_rate=("y_true", "mean"),
+            n=("y_true", "size"),
+        )
+        grouped.insert(0, "Model", model_name)
+        calibration_rows.append(grouped.reset_index(drop=True))
+
+    classifier_metrics = pd.DataFrame(classifier_rows).round(
+        {
+            "AUC": 3,
+            "Brier score": 3,
+            "Accuracy": 3,
+            "Sensitivity": 3,
+            "Specificity": 3,
+            "Precision": 3,
+        }
+    )
+    classifier_coefficients = pd.concat(classifier_coef_rows, ignore_index=True).round(4)
+    classifier_predictions = pd.concat(classifier_prediction_frames, ignore_index=True)
+    roc_table = pd.concat(roc_frames, ignore_index=True)
+    calibration_table = pd.concat(calibration_rows, ignore_index=True).round(3)
+
+    plt.figure(figsize=(6.8, 5))
+    for model_name, roc in roc_table.groupby("Model"):
+        auc = classifier_metrics.loc[classifier_metrics["Model"] == model_name, "AUC"].iloc[0]
+        plt.plot(roc["fpr"], roc["tpr"], label=f"{model_name} (AUC={auc:.3f})")
+    plt.plot([0, 1], [0, 1], color="black", linestyle="--", linewidth=1)
+    plt.xlabel("False positive rate")
+    plt.ylabel("True positive rate")
+    plt.title("PCOS/PMOS Status Classifier ROC Curves")
+    plt.legend(frameon=True)
+    savefig("classifier_roc_curves.png")
+
+    plt.figure(figsize=(6.8, 5))
+    for model_name, cal in calibration_table.groupby("Model"):
+        plt.plot(cal["mean_pred"], cal["observed_rate"], marker="o", label=model_name)
+    plt.plot([0, 1], [0, 1], color="black", linestyle="--", linewidth=1)
+    plt.xlabel("Mean predicted probability")
+    plt.ylabel("Observed PCOS/PMOS rate")
+    plt.title("Classifier Calibration by Probability Bin")
+    plt.legend(frameon=True)
+    savefig("classifier_calibration.png")
+
     fitted = full_model.fittedvalues
     resid = full_model.resid
     plt.figure(figsize=(6.5, 4.5))
@@ -476,6 +733,16 @@ def main() -> None:
     fig.set_size_inches(6, 4.5)
     plt.title("Q-Q Plot of Multiple Regression Residuals")
     savefig("multiple_regression_qq.png")
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.3))
+    sns.scatterplot(x=fitted, y=resid, ax=axes[0])
+    axes[0].axhline(0, color="black", linewidth=1)
+    axes[0].set_xlabel("Fitted values")
+    axes[0].set_ylabel("Residuals")
+    axes[0].set_title("Residuals vs. fitted")
+    stats.probplot(resid, dist="norm", plot=axes[1])
+    axes[1].set_title("Normal Q-Q")
+    savefig("multiple_regression_diagnostics.png")
 
     report = []
     report.append("# Concise First Run: Predictors of BMI in PCOS\n")
@@ -527,6 +794,14 @@ def main() -> None:
     report.append(interaction_table.to_markdown(index=False))
     report.append("\n### Sensitivity Checks\n")
     report.append(sensitivity_table.to_markdown(index=False))
+    report.append("\n### PMOS Construct Coverage Audit\n")
+    report.append(
+        coverage_table[
+            ["PMOS domain", "Coverage", "Measured variables", "Major gaps"]
+        ].to_markdown(index=False)
+    )
+    report.append("\n### PCOS/PMOS Status Classifier Context\n")
+    report.append(classifier_metrics.to_markdown(index=False))
 
     report.append("\n## First-Run Interpretation\n")
     report.append(
@@ -534,14 +809,16 @@ def main() -> None:
         "The two-sample t-test suggested higher mean BMI for irregular cycles than regular cycles, but this difference was smaller after adjusting for other variables in the multiple regression. "
         "Follicle-count group did not show a statistically significant difference in mean BMI by one-way ANOVA. "
         "In the multiple linear regression, self-reported weight gain was the clearest predictor of BMI, and the reduced model had a slightly higher adjusted R-squared than the larger candidate model. "
-        "The next best improvement is to confirm whether another file/version contains fasting insulin and testosterone, then rerun the candidate-predictor model."
+        "The PMOS-era interpretation is that the public Kaggle variables are stronger for reproductive/ovarian classification than for metabolic-mechanism BMI modeling because fasting insulin, fasting glucose, HOMA-IR, lipids, and testosterone are absent."
     )
 
     report.append("\n## Figures\n")
     for path in sorted(FIG.glob("*.png")):
         report.append(f"- [{path.name}](../figures/{path.name})")
 
-    (REPORTS / "pcos_bmi_first_run_report.md").write_text("\n".join(report), encoding="utf-8")
+    (REPORTS / "pcos_bmi_first_run_report.md").write_text(
+        "\n".join(report) + "\n", encoding="utf-8"
+    )
     descriptives.to_csv(RESULTS / "descriptive_statistics.csv")
     coef_table(full_model).round(6).to_csv(
         RESULTS / "multiple_regression_coefficients.csv", index=False
@@ -553,6 +830,12 @@ def main() -> None:
     context_table.to_csv(RESULTS / "pcos_vs_non_pcos_context.csv", index=False)
     interaction_table.to_csv(RESULTS / "interaction_model_comparison.csv", index=False)
     sensitivity_table.to_csv(RESULTS / "sensitivity_checks.csv", index=False)
+    coverage_table.to_csv(RESULTS / "pmos_coverage_table.csv", index=False)
+    classifier_metrics.to_csv(RESULTS / "pcos_classification_metrics.csv", index=False)
+    classifier_coefficients.to_csv(RESULTS / "pcos_classification_coefficients.csv", index=False)
+    classifier_predictions.to_csv(RESULTS / "pcos_classification_predictions.csv", index=False)
+    roc_table.to_csv(RESULTS / "pcos_classification_roc_points.csv", index=False)
+    calibration_table.to_csv(RESULTS / "pcos_classification_calibration.csv", index=False)
 
     top_coef = coef_table(full_model)
     top_coef = top_coef[top_coef["term"] != "Intercept"].copy()
@@ -709,6 +992,245 @@ The most consistent BMI-related variable in this first run is self-reported weig
 \end{{document}}
 """
     (REPORTS / "pcos_bmi_team_brief.tex").write_text(latex.strip() + "\n", encoding="utf-8")
+
+    prof_summary = pd.DataFrame(
+        [
+            {
+                "Analysis": "BMI distribution",
+                "Result": f"mean {pcos['bmi'].mean():.2f}, SD {pcos['bmi'].std():.2f}, skew {bmi_skew:.3f}",
+            },
+            {
+                "Analysis": "Simple regression",
+                "Result": f"WHR slope {simple.params['waist_hip_ratio']:.2f}, R2 {simple.rsquared:.3f}, p {simple.pvalues['waist_hip_ratio']:.4f}",
+            },
+            {
+                "Analysis": "Welch t-test",
+                "Result": f"irregular mean {irregular.mean():.2f} vs regular {regular.mean():.2f}, p {ttest.pvalue:.4f}",
+            },
+            {
+                "Analysis": "One-way ANOVA",
+                "Result": f"follicle groups F {anova_table.loc['C(follicle_group)', 'F']:.2f}, p {anova_table.loc['C(follicle_group)', 'PR(>F)']:.4f}",
+            },
+            {
+                "Analysis": "Multiple regression",
+                "Result": f"full adj. R2 {full_model.rsquared_adj:.3f}; clinical adj. R2 {reduced_model.rsquared_adj:.3f}; weight gain p <0.001",
+            },
+        ]
+    )
+    coverage_short = coverage_table[["PMOS domain", "Coverage", "Major gaps"]].copy()
+    classifier_public = classifier_metrics[
+        ["Model", "n_test", "AUC", "Brier score", "Sensitivity", "Specificity"]
+    ].rename(columns={"n_test": "Test n"})
+    public_coverage_tex = latex_table(
+        coverage_short, "PMOS domain coverage in the Kaggle dataset.", "tab:public-coverage"
+    ).replace(r"\begin{table}[t]", r"\begin{table}[H]")
+    public_classifier_tex = latex_table(
+        classifier_public, "Classifier context results.", "tab:public-classifiers"
+    ).replace(r"\begin{table}[t]", r"\begin{table}[H]")
+
+    stat_final_latex = rf"""
+\documentclass[conference]{{IEEEtran}}
+\usepackage{{booktabs}}
+\usepackage{{graphicx}}
+\usepackage{{hyperref}}
+\usepackage{{url}}
+\usepackage{{xurl}}
+\usepackage{{microtype}}
+\usepackage{{amsmath}}
+\usepackage{{array}}
+\hypersetup{{colorlinks=true,urlcolor=blue,citecolor=blue,linkcolor=blue}}
+
+\title{{Clinical and Hormonal Predictors of BMI in PCOS/PMOS: A Statistical Analysis and Dataset Coverage Audit}}
+\author{{\IEEEauthorblockN{{Soumitra Das, Shreya Saha, Anjali Kanvinde, Shivraj Singh Bhatti, Pranav Jeyakumar}}
+\IEEEauthorblockA{{STAT 501 Final Project}}}}
+
+\begin{{document}}
+\maketitle
+
+\begin{{abstract}}
+The 2026 renaming of polycystic ovary syndrome (PCOS) to polyendocrine metabolic ovarian syndrome (PMOS) emphasizes that the condition is endocrine, metabolic, reproductive, dermatological, and psychological. We analyze a widely used Kaggle PCOS dataset to ask which measured variables are associated with BMI among PCOS-positive participants and whether the dataset contains the biosignals needed for PMOS-era metabolic modeling. The analysis uses descriptive statistics, simple regression, Welch's two-sample t-test, one-way ANOVA, multiple linear regression, adjusted $R^2$, VIF, residual diagnostics, and a construct coverage audit. Self-reported weight gain is the dominant BMI-associated predictor; the available laboratory block explains almost none of the BMI variation. We interpret this as a dataset limitation, not evidence against metabolic mechanisms in PMOS.
+\end{{abstract}}
+
+\section{{Introduction}}
+PCOS was renamed PMOS in May 2026 to reduce the misleading emphasis on ovarian cysts and to foreground endocrine and metabolic features \cite{{endocrine,monash}}. This creates a useful statistical question: does a popular PCOS dataset measure the domains now emphasized by PMOS? Our original course question remains BMI-focused: among PCOS-positive participants, which clinical, hormonal, lifestyle, and ultrasound variables are associated with BMI?
+
+\section{{Data and Methods}}
+We used the Kaggle PCOS dataset by Kottarathil \cite{{kaggle}}. The main workbook has 541 rows and 45 columns; the BMI analysis is restricted to 177 PCOS-positive rows. A second infertility file was audited separately and appears to contain the same patients with patient IDs offset by 10000 and duplicate AMH/beta-HCG fields, so it does not add fasting insulin, testosterone, fasting glucose, or HOMA-IR.
+
+BMI was treated as a numerical response. We inspected its distribution, fit a simple linear regression with waist-to-hip ratio, used a Welch t-test for cycle regularity, used one-way ANOVA across total follicle-count groups, and fit multiple regression models with clinical, laboratory, ultrasound, and combined predictor blocks. Multicollinearity was assessed by VIF and model adequacy by residual and Q-Q plots.
+
+\section{{Results}}
+{latex_table(prof_summary, "Primary STAT 501 results.", "tab:prof-summary")}
+
+\begin{{figure}}[t]
+\centering
+\includegraphics[width=\columnwidth]{{../figures/bmi_distribution.png}}
+\caption{{BMI distribution among PCOS-positive participants.}}
+\label{{fig:bmi-dist}}
+\end{{figure}}
+
+The BMI distribution was only mildly right-skewed. Waist-to-hip ratio had a weak, non-significant simple linear association with BMI. The Welch test suggested higher mean BMI among participants with irregular cycles, but this difference was reduced after adjustment. Follicle-count group did not show a significant ANOVA result, so Tukey post-hoc comparisons were not warranted.
+
+\begin{{figure}}[t]
+\centering
+\includegraphics[width=\columnwidth]{{../figures/model_block_adjusted_r2.png}}
+\caption{{Adjusted $R^2$ by BMI predictor block.}}
+\label{{fig:block}}
+\end{{figure}}
+
+{latex_table(block_table, "BMI model comparison by predictor block.", "tab:block-final")}
+
+The clinical-only block had the strongest adjusted $R^2$ among compact models. The laboratory-only model had adjusted $R^2=-0.008$, indicating that available labs such as AMH, LH/FSH, TSH, PRL, and RBS did not explain BMI better than an intercept-only baseline. In the full model, non-intercept VIF values were close to 1, so multicollinearity was not the explanation. Residual diagnostics showed no major pattern that would overturn the main exploratory conclusion.
+
+\begin{{figure}}[t]
+\centering
+\includegraphics[width=\columnwidth]{{../figures/multiple_regression_diagnostics.png}}
+\caption{{Residual and Q-Q diagnostics for the multiple regression.}}
+\label{{fig:diagnostics}}
+\end{{figure}}
+
+\section{{PMOS Coverage Audit}}
+{latex_table(coverage_short, "PMOS construct coverage in the Kaggle variables.", "tab:coverage-final")}
+
+\begin{{figure}}[t]
+\centering
+\includegraphics[width=\columnwidth]{{../figures/pmos_construct_coverage.png}}
+\caption{{Construct coverage audit under the PMOS framing.}}
+\label{{fig:coverage}}
+\end{{figure}}
+
+The dataset is strongest on reproductive and ovarian structure variables, partial on endocrine and dermatological symptoms, weak on metabolic/cardiovascular variables, and absent on psychological or quality-of-life measures. Therefore, the weak laboratory BMI result should not be read as evidence that endocrine or metabolic mechanisms are unimportant. Instead, the dataset lacks the main metabolic biosignals emphasized by PMOS: fasting insulin, fasting glucose, HOMA-IR, OGTT, lipids, and detailed androgen measures.
+
+\section{{Discussion}}
+The most consistent BMI-associated variable was self-reported weight gain. This is plausible as a broad clinical signal, but it is not a mechanistic biomarker. The analysis is cross-sectional and observational, so it estimates association rather than causation. The main value of this project is a statistical and measurement critique: a widely used PCOS dataset can support exploratory BMI modeling and PCOS-status classification, but it is structurally limited for PMOS-era metabolic mechanism analysis.
+
+\section{{Conclusion}}
+For the course question, clinical variables outperformed the available laboratory variables for BMI prediction among PCOS-positive participants. For the PMOS-era interpretation, the result highlights a data gap: future datasets should include fasting insulin, fasting glucose, HOMA-IR, lipids, blood pressure, androgen assays, and validated mental-health measures to represent PMOS as a multisystem condition.
+
+\clearpage
+\begin{{thebibliography}}{{9}}
+\bibitem{{endocrine}} Endocrine Society, ``Polyendocrine Metabolic Ovarian Syndrome: New name to improve diagnosis and care,'' May 12, 2026. \url{{https://www.endocrine.org/news-and-advocacy/news-room/2026/pcos-name-change}}
+\bibitem{{monash}} Monash University, ``Polyendocrine Metabolic Ovarian Syndrome: New name to improve diagnosis and care,'' May 13, 2026. \url{{https://www.monash.edu/medicine/news/latest/2026-articles/polyendocrine-metabolic-ovarian-syndrome-new-name-to-improve-diagnosis-and-care-of-condition-affecting-170-million-women-worldwide}}
+\bibitem{{kaggle}} P. Kottarathil, ``Polycystic ovary syndrome (PCOS),'' Kaggle dataset. \url{{https://www.kaggle.com/datasets/prasoonkottarathil/polycystic-ovary-syndrome-pcos}}
+\bibitem{{guideline}} H. J. Teede et al., ``Recommendations from the 2023 international evidence-based guideline for the assessment and management of polycystic ovary syndrome,'' \textit{{J. Clin. Endocrinol. Metab.}}, 2023.
+\bibitem{{ml}} S. Denny et al., ``Polycystic Ovary Syndrome Detection Machine Learning Model Based on Optimized Feature Selection and Explainable Artificial Intelligence,'' \textit{{Diagnostics}}, 2023.
+\end{{thebibliography}}
+\end{{document}}
+"""
+    (REPORTS / "stat501_pmos_bmi_final.tex").write_text(
+        stat_final_latex.strip() + "\n", encoding="utf-8"
+    )
+
+    public_md = f"""# What a Popular PCOS Dataset Misses in the PMOS Era
+
+PCOS has been renamed **polyendocrine metabolic ovarian syndrome (PMOS)**. The new name matters because it points away from a narrow ovarian-cyst framing and toward a lifelong endocrine and metabolic condition.
+
+## The Short Version
+
+- The Kaggle dataset is useful, but it was built around the older PCOS measurement frame.
+- It measures reproductive and ovarian morphology variables well.
+- It only weakly measures the metabolic axis now emphasized by PMOS.
+- Our BMI analysis found that self-reported weight gain dominates, while the available lab variables explain little BMI variation.
+- That does **not** mean hormones or metabolism are unimportant. It means this dataset is missing direct metabolic biosignals.
+
+## What the Dataset Covers
+
+{coverage_table[['PMOS domain', 'Coverage', 'Measured variables', 'Major gaps']].to_markdown(index=False)}
+
+![PMOS construct coverage](../figures/pmos_construct_coverage.png)
+
+## What the BMI Analysis Adds
+
+In the PCOS-positive subset, mean BMI was {pcos['bmi'].mean():.2f}. The clinical-only BMI model had adjusted R2 = {block_table.loc[block_table['Model block'] == 'Clinical only', 'Adj. R2'].iloc[0]:.3f}, while the laboratory-only model had adjusted R2 = {block_table.loc[block_table['Model block'] == 'Laboratory only', 'Adj. R2'].iloc[0]:.3f}. The clearest predictor was self-reported weight gain.
+
+This is a measurement lesson: the dataset has AMH, LH/FSH, TSH, PRL, vitamin D3, and random blood sugar, but it lacks fasting insulin, fasting glucose, HOMA-IR, OGTT, lipids, and testosterone. Those missing variables are exactly the ones needed to study PMOS as a metabolic condition.
+
+## Classification Context
+
+We also ran two simple logistic classifiers for PCOS/PMOS status. These are not diagnostic tools; they are a way to see what kind of signal the dataset contains.
+
+{classifier_public.to_markdown(index=False)}
+
+![Classifier ROC curves](../figures/classifier_roc_curves.png)
+
+![Classifier calibration](../figures/classifier_calibration.png)
+
+## Public Takeaway
+
+A dataset can only teach what it measures. This Kaggle dataset can support classroom statistics and exploratory PCOS-status modeling, but it cannot fully represent PMOS as a polyendocrine metabolic condition. Future PMOS datasets should include fasting insulin, fasting glucose, HOMA-IR, lipids, blood pressure, androgen assays, mental-health scales, and longitudinal follow-up.
+
+## Links
+
+- Endocrine Society PMOS name-change release: https://www.endocrine.org/news-and-advocacy/news-room/2026/pcos-name-change
+- Monash PMOS release: https://www.monash.edu/medicine/news/latest/2026-articles/polyendocrine-metabolic-ovarian-syndrome-new-name-to-improve-diagnosis-and-care-of-condition-affecting-170-million-women-worldwide
+- Kaggle dataset: https://www.kaggle.com/datasets/prasoonkottarathil/polycystic-ovary-syndrome-pcos
+"""
+    (REPORTS / "pmos_public_value_brief.md").write_text(public_md, encoding="utf-8")
+
+    public_tex = rf"""
+\documentclass[11pt]{{article}}
+\usepackage[margin=0.8in]{{geometry}}
+\usepackage{{booktabs}}
+\usepackage{{graphicx}}
+\usepackage{{hyperref}}
+\usepackage{{xurl}}
+\usepackage{{microtype}}
+\usepackage{{float}}
+\hypersetup{{colorlinks=true,urlcolor=blue,citecolor=blue,linkcolor=blue}}
+\title{{What a Popular PCOS Dataset Misses in the PMOS Era}}
+\author{{PMOS Research Team}}
+\date{{\today}}
+\begin{{document}}
+\maketitle
+
+\section*{{Plain-English Summary}}
+PCOS has been renamed polyendocrine metabolic ovarian syndrome (PMOS). The new name matters because it points away from a narrow ovarian-cyst framing and toward a lifelong endocrine and metabolic condition. The Kaggle dataset is useful for classroom statistics and exploratory modeling, but it was built around the older PCOS measurement frame.
+
+\section*{{What the Dataset Covers}}
+{public_coverage_tex}
+
+\begin{{figure}}[H]
+\centering
+\includegraphics[width=0.86\linewidth]{{../figures/pmos_construct_coverage.png}}
+\caption{{The dataset is strongest on reproductive/ovarian variables and weakest on metabolic and psychological PMOS domains.}}
+\end{{figure}}
+
+\section*{{What the BMI Analysis Adds}}
+In the PCOS-positive subset, mean BMI was {pcos['bmi'].mean():.2f}. The clinical-only BMI model had adjusted $R^2={block_table.loc[block_table['Model block'] == 'Clinical only', 'Adj. R2'].iloc[0]:.3f}$, while the laboratory-only model had adjusted $R^2={block_table.loc[block_table['Model block'] == 'Laboratory only', 'Adj. R2'].iloc[0]:.3f}$. The clearest predictor was self-reported weight gain.
+
+This is not evidence that hormones or metabolism are unimportant. It is evidence that this public dataset is missing direct metabolic biosignals such as fasting insulin, fasting glucose, HOMA-IR, OGTT, lipids, and testosterone.
+
+\section*{{Classification Context}}
+We also ran two simple logistic classifiers for PCOS/PMOS status. These are not diagnostic tools; they show what kind of signal the dataset contains.
+
+{public_classifier_tex}
+
+\begin{{figure}}[H]
+\centering
+\includegraphics[width=0.72\linewidth]{{../figures/classifier_roc_curves.png}}
+\caption{{ROC curves for two PCOS/PMOS-status classifiers.}}
+\end{{figure}}
+
+\begin{{figure}}[H]
+\centering
+\includegraphics[width=0.72\linewidth]{{../figures/classifier_calibration.png}}
+\caption{{Calibration curves by predicted-probability bin.}}
+\end{{figure}}
+
+\section*{{Public Takeaway}}
+A dataset can only teach what it measures. This Kaggle dataset can support exploratory PCOS-status modeling, but it cannot fully represent PMOS as a polyendocrine metabolic condition. Future PMOS datasets should include fasting insulin, fasting glucose, HOMA-IR, lipids, blood pressure, androgen assays, mental-health scales, and longitudinal follow-up.
+
+\section*{{Source Links}}
+\begin{{itemize}}
+\item Endocrine Society PMOS release: \url{{https://www.endocrine.org/news-and-advocacy/news-room/2026/pcos-name-change}}
+\item Monash PMOS release: \url{{https://www.monash.edu/medicine/news/latest/2026-articles/polyendocrine-metabolic-ovarian-syndrome-new-name-to-improve-diagnosis-and-care-of-condition-affecting-170-million-women-worldwide}}
+\item Kaggle dataset: \url{{https://www.kaggle.com/datasets/prasoonkottarathil/polycystic-ovary-syndrome-pcos}}
+\end{{itemize}}
+\end{{document}}
+"""
+    (REPORTS / "pmos_public_value_brief.tex").write_text(
+        public_tex.strip() + "\n", encoding="utf-8"
+    )
 
 
 if __name__ == "__main__":

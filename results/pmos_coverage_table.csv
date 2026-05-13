@@ -1,0 +1,6 @@
+PMOS domain,Coverage,Score,Measured variables,Major gaps
+Reproductive / ovarian,Strong,3,"cycle regularity, cycle length, follicles, follicle size, endometrium, pregnancy history",diagnostic visit notes and formal phenotype labels
+Endocrine,Partial,2,"AMH, FSH, LH, FSH/LH, TSH, PRL, PRG, beta-HCG","testosterone, SHBG, DHEAS, free androgen index"
+Metabolic / cardiovascular,Weak proxy,1,"BMI, waist:hip ratio, RBS, BP, weight gain, fast food, exercise","fasting insulin, fasting glucose, HOMA-IR, OGTT, lipids"
+Dermatological / symptoms,Partial,2,"hair growth, skin darkening, hair loss, pimples",standardized hirsutism/acne scales
+Psychological / quality of life,Absent,0,none,"depression, anxiety, sleep, stigma, quality-of-life scales"

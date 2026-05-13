@@ -1,0 +1,19 @@
+Model,term,standardized_coef
+Ovary-centric,const,-1.2759
+Ovary-centric,age,-0.397
+Ovary-centric,amh,0.2904
+Ovary-centric,total_follicles,2.2573
+Ovary-centric,lh_fsh_ratio,0.0069
+Ovary-centric,cycle_irregular,0.6957
+Metabolic + symptom,const,-1.108
+Metabolic + symptom,bmi,-0.1282
+Metabolic + symptom,waist_hip_ratio,0.0635
+Metabolic + symptom,weight_gain,0.5801
+Metabolic + symptom,fast_food,0.3988
+Metabolic + symptom,regular_exercise,0.1759
+Metabolic + symptom,skin_darkening,0.5861
+Metabolic + symptom,hair_growth,0.8006
+Metabolic + symptom,hair_loss,-0.0141
+Metabolic + symptom,pimples,0.4583
+Metabolic + symptom,bp_systolic,-0.2052
+Metabolic + symptom,bp_diastolic,-0.0415

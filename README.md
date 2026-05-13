@@ -1,14 +1,15 @@
-# Clinical and Hormonal Predictors of BMI in PCOS
+# Clinical and Hormonal Predictors of BMI in PCOS/PMOS
 
-This repository contains a first-run statistical analysis for the project:
+This repository contains the statistical and public-facing project materials for:
 
-**Clinical and Hormonal Predictors of BMI in Women with Polycystic Ovary Syndrome (PCOS)**.
+**Clinical and Hormonal Predictors of BMI in Women with PCOS/PMOS**.
 
 The analysis uses the public Kaggle PCOS dataset and focuses on BMI among
 PCOS-positive participants. It includes descriptive statistics, simple linear
 regression, Welch two-sample t-tests, one-way ANOVA, multiple regression,
 adjusted R-squared model comparisons, VIF checks, residual diagnostics,
-BMI subgroup checks, interaction models, and sensitivity checks.
+BMI subgroup checks, interaction models, sensitivity checks, a PMOS construct
+coverage audit, and two PCOS/PMOS-status classification context models.
 
 ## Repository Layout
 
@@ -16,6 +17,10 @@ BMI subgroup checks, interaction models, and sensitivity checks.
 - `reports/pcos_bmi_first_run_report.md` - concise generated analysis report
 - `reports/pcos_bmi_team_brief.tex` - two-column LaTeX team brief
 - `reports/pcos_bmi_team_brief.pdf` - compiled team brief
+- `reports/stat501_pmos_bmi_final.tex` - professor-facing final report source
+- `reports/stat501_pmos_bmi_final.pdf` - professor-facing final report
+- `reports/pmos_public_value_brief.md` - plain-English public value-add brief
+- `reports/pmos_public_value_brief.pdf` - public value-add brief PDF
 - `figures/` - generated analysis plots
 - `results/` - generated CSV result tables
 - `data/README.md` - data source notes
@@ -46,11 +51,13 @@ pip install -r requirements.txt
 python src/pcos_bmi_analysis.py
 ```
 
-To compile the LaTeX brief:
+To compile the LaTeX reports:
 
 ```bash
 cd reports
 tectonic pcos_bmi_team_brief.tex
+tectonic stat501_pmos_bmi_final.tex
+tectonic pmos_public_value_brief.tex
 ```
 
 ## First-Run Notes
