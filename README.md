@@ -19,8 +19,12 @@ BMI subgroup checks, interaction models, and sensitivity checks.
 - `figures/` - generated analysis plots
 - `results/` - generated CSV result tables
 - `data/README.md` - data source notes
+- `docs/reference_bank.md` - literature leads, project framing, and final
+  IEEE-style paper outline
 - `docs/dataset_audit_and_followup.md` - audit of the two Kaggle files and
   follow-up dataset leads
+- `docs/team_review_plan.md` - teammate review checklist and next experiments
+- `docs/stats_learning_cheatsheet.md` - compact personal STAT 501 method picker
 
 ## Data Source
 
