@@ -8,10 +8,19 @@
 \usepackage{amsmath}
 \usepackage{array}
 \usepackage{caption}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{cuted}
 \captionsetup{font=small,labelfont=bf}
 \hypersetup{colorlinks=true,urlcolor=blue,citecolor=blue,linkcolor=blue}
+\definecolor{cardbg}{HTML}{F2F7F5}
+\definecolor{cardline}{HTML}{2F6F73}
+\setlist[itemize]{leftmargin=*, itemsep=1pt, topsep=2pt}
+\newcommand{\infocard}[2]{\vspace{0.35em}\noindent\fcolorbox{cardline}{cardbg}{\begin{minipage}{0.94\columnwidth}\textbf{#1}\par\vspace{0.2em}#2\end{minipage}}\vspace{0.45em}}
+\newcommand{\snapshot}[1]{\begin{strip}\vspace{-0.8em}\noindent\fcolorbox{cardline}{cardbg}{\begin{minipage}{0.965\textwidth}#1\end{minipage}}\vspace{-0.4em}\end{strip}}
 
-\title{Clinical Predictors of BMI in PCOS/PMOS: A STAT 501 Analysis}
+\title{Clinical Predictors of BMI in PCOS/PMOS}
 \author{Soumitra Das \and Shreya Saha \and Anjali Kanvinde \and Shivraj Singh Bhatti \and Pranav Jeyakumar}
 \date{May 2026}
 
@@ -20,17 +29,20 @@
 \maketitle
 
 \begin{abstract}
-We analyze a public Kaggle dataset on polycystic ovary syndrome, now more precisely framed as polyendocrine metabolic ovarian syndrome (PMOS), to ask which measured clinical and hormonal variables are associated with BMI among PCOS-positive participants. The final course analysis intentionally uses STAT 501 methods: descriptive statistics, confidence intervals, correlation, simple linear regression, Welch's two-sample t-test, one-way ANOVA, and linear-model diagnostics. The key finding is that self-reported weight gain is the strongest BMI-related variable, while the available laboratory variables explain little BMI variation because direct metabolic biosignals such as fasting insulin and HOMA-IR are absent.
+We analyze a public Kaggle dataset on polycystic ovary syndrome, now more precisely framed as polyendocrine metabolic ovarian syndrome (PMOS), to ask which measured clinical and hormonal variables are associated with BMI among PCOS-positive participants. The analysis uses descriptive statistics, confidence intervals, correlation, simple linear regression, Welch's two-sample t-test, one-way ANOVA, and linear-model diagnostics. The key finding is that self-reported weight gain is the strongest BMI-related variable, while the available laboratory variables explain little BMI variation because direct metabolic biosignals such as fasting insulin and HOMA-IR are absent.
 \end{abstract}
+
+\snapshot{\textbf{Study Snapshot}\vspace{0.25em}
+\begin{itemize}
+\item \textbf{Research question:} among PCOS-positive participants, which measured variables are associated with BMI?
+\item \textbf{Unit and response:} one patient record; BMI is the numerical response variable.
+\item \textbf{Key explanatory variables:} waist-to-hip ratio, cycle regularity, follicle-count group, self-reported weight gain, and available laboratory measures such as AMH, LH/FSH ratio, TSH, PRL, and random blood sugar.
+\item \textbf{Statistical approach:} descriptive statistics, 95\% confidence intervals, correlation, simple linear regression, Welch's two-sample t-test, one-way ANOVA, and linear-model diagnostics.
+\item \textbf{Interpretation:} results are associations from an observational dataset, not causal effects.
+\end{itemize}}
 
 \section{Introduction}
 PCOS was renamed PMOS in 2026 to emphasize that the condition is not only ovarian but also endocrine and metabolic \cite{endocrine,monash}. Our research question is: \textbf{among PCOS-positive participants, which measured variables are associated with BMI?} This matters statistically and clinically because BMI is related to metabolic risk, but the public dataset may not contain the direct metabolic variables needed to explain it.
-
-\noindent\textbf{Method map for grading.} Descriptive statistics and plots summarize the response and key explanatory variables. A 95\% confidence interval estimates the population mean BMI for PCOS-positive participants. Correlation and simple linear regression test the numerical relationship between BMI and waist-to-hip ratio. A Welch two-sample t-test compares mean BMI between regular and irregular cycle groups because the response is numerical and the grouping variable has two independent categories. One-way ANOVA compares mean BMI across three follicle-count groups. Multiple linear regression is used only as a linear-model extension to compare clinical, laboratory, and ultrasound predictor blocks.
-
-\noindent\textbf{Variables.} One row represents one patient record. The response variable is BMI, a numerical variable. Key explanatory variables include waist-to-hip ratio (numerical), cycle regularity (categorical: regular/irregular), follicle group (categorical with three ordered groups created from total follicle count), weight gain (binary yes/no), and available laboratory measures such as AMH, LH/FSH ratio, TSH, PRL, and random blood sugar (numerical).
-
-\noindent\textbf{How to interpret the results.} All conclusions are associations from an observational dataset, not causal claims. A small p-value indicates evidence of an association in this sample framework; adjusted $R^2$ describes explanatory strength for BMI; diagnostic plots are used to judge whether model assumptions are reasonable.
 
 \section{Data}
 The Kaggle workbook by Kottarathil contains 541 rows and 45 columns \cite{kaggle}. We restricted the main analysis to the 177 PCOS-positive participants. The BMI distribution was mildly right-skewed (skewness 0.230), with mean 25.47 and SD 4.40. A 95\% confidence interval for the mean BMI is (24.82, 26.12). The second Kaggle infertility file was audited separately; it appears to contain the same patients with offset IDs and duplicate AMH/beta-HCG fields, so it does not add fasting insulin, testosterone, fasting glucose, or HOMA-IR.
@@ -38,12 +50,12 @@ The Kaggle workbook by Kottarathil contains 541 rows and 45 columns \cite{kaggle
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.94\textwidth]{../figures/stat501_core_plots.png}
-\caption{Core plots required by the course methods: distributions of BMI and waist-to-hip ratio, scatterplot for simple regression, and side-by-side BMI boxplots by cycle regularity.}
+\caption{Distributions of BMI and waist-to-hip ratio, scatterplot for simple regression, and side-by-side BMI boxplots by cycle regularity.}
 \label{fig:core}
 \end{figure*}
 
 \section{Analysis}
-\begin{table}[t]
+\begin{table}[H]
 \caption{Primary statistical results, with interpretation in context.}
 \label{tab:key}
 \small\resizebox{\columnwidth}{!}{\begin{tabular}{ll}
@@ -74,7 +86,7 @@ The ANOVA compares mean BMI across low, medium, and high follicle-count groups. 
 
 As an exploratory linear-model extension, we compared predictor blocks using adjusted $R^2$. The clinical block has adjusted $R^2=0.253$, while the laboratory-only block has adjusted $R^2=-0.009$. The maximum non-intercept VIF in the full model is 1.23, so multicollinearity is not driving the result.
 
-\begin{table}[t]
+\begin{table}[H]
 \caption{Linear-model block comparison for BMI.}
 \label{tab:block}
 \small\resizebox{\columnwidth}{!}{\begin{tabular}{lrrr}
