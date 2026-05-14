@@ -1,0 +1,6 @@
+"Analysis","Result"
+"BMI mean CI","Mean 25.47, 95\% CI (24.82, 26.12)"
+"Simple regression","WHR slope 7.93, r=0.084, p=0.2678"
+"Welch t-test","Irregular - regular mean diff 1.73, 95\% CI (0.46, 3.00), p=0.0081"
+"One-way ANOVA","Follicle group F=0.10, p=0.9039"
+"Clinical model","Adjusted R2=0.253; weight gain $p<0.001$"

@@ -8,6 +8,7 @@ Start here if you are reviewing the first PCOS/PMOS BMI analysis.
 - Team LaTeX: `reports/pcos_bmi_team_brief.tex`
 - Full generated first-run notes: `reports/pcos_bmi_first_run_report.md`
 - Reproducible analysis code: `src/pcos_bmi_analysis.py`
+- R-only STAT 501 report code: `src/stat501_pmos_bmi_report.R`
 - Professor-facing final draft: `reports/stat501_pmos_bmi_final.pdf`
 - Public PMOS value-add brief: `reports/pmos_public_value_brief.pdf`
 
@@ -70,6 +71,7 @@ questions than for direct PMOS metabolic biosignal analysis.
 From the repo root:
 
 ```bash
+Rscript src/stat501_pmos_bmi_report.R
 python src/pcos_bmi_analysis.py
 cd reports
 tectonic pcos_bmi_team_brief.tex
