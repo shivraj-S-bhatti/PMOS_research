@@ -1,5 +1,5 @@
-\documentclass[10pt,twocolumn]{article}
-\usepackage[margin=0.68in]{geometry}
+\documentclass[11pt]{article}
+\usepackage[margin=0.84in]{geometry}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{hyperref}
@@ -11,14 +11,18 @@
 \usepackage{float}
 \usepackage{xcolor}
 \usepackage{enumitem}
-\usepackage{cuted}
 \captionsetup{font=small,labelfont=bf}
 \hypersetup{colorlinks=true,urlcolor=blue,citecolor=blue,linkcolor=blue}
 \definecolor{cardbg}{HTML}{F2F7F5}
 \definecolor{cardline}{HTML}{2F6F73}
-\setlist[itemize]{leftmargin=*, itemsep=1pt, topsep=2pt}
-\newcommand{\infocard}[2]{\vspace{0.35em}\noindent\fcolorbox{cardline}{cardbg}{\begin{minipage}{0.94\columnwidth}\textbf{#1}\par\vspace{0.2em}#2\end{minipage}}\vspace{0.45em}}
-\newcommand{\snapshot}[1]{\begin{strip}\vspace{-0.8em}\noindent\fcolorbox{cardline}{cardbg}{\begin{minipage}{0.965\textwidth}#1\end{minipage}}\vspace{-0.4em}\end{strip}}
+\setlist[itemize]{leftmargin=1.25em, itemsep=1pt, topsep=2pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.58em}
+\setlength{\textfloatsep}{1.0em}
+\setlength{\floatsep}{0.9em}
+\setlength{\intextsep}{0.9em}
+\renewcommand{\arraystretch}{1.18}
+\newcommand{\snapshot}[1]{\vspace{0.85em}\noindent\fcolorbox{cardline}{cardbg}{\begin{minipage}{0.955\textwidth}\vspace{0.25em}\small #1\vspace{0.15em}\end{minipage}}\vspace{0.95em}}
 
 \title{Clinical Predictors of BMI in PCOS/PMOS}
 \author{Soumitra Das \and Shreya Saha \and Anjali Kanvinde \and Shivraj Singh Bhatti \and Pranav Jeyakumar}
@@ -31,6 +35,7 @@
 \begin{abstract}
 We analyze a public Kaggle dataset on polycystic ovary syndrome, now more precisely framed as polyendocrine metabolic ovarian syndrome (PMOS), to ask which measured clinical and hormonal variables are associated with BMI among PCOS-positive participants. The analysis uses descriptive statistics, confidence intervals, correlation, simple linear regression, Welch's two-sample t-test, one-way ANOVA, and linear-model diagnostics. The key finding is that self-reported weight gain is the strongest BMI-related variable, while the available laboratory variables explain little BMI variation because direct metabolic biosignals such as fasting insulin and HOMA-IR are absent.
 \end{abstract}
+\vspace{0.2em}
 
 \snapshot{\textbf{Study Snapshot}\vspace{0.25em}
 \begin{itemize}
@@ -42,23 +47,27 @@ We analyze a public Kaggle dataset on polycystic ovary syndrome, now more precis
 \end{itemize}}
 
 \section{Introduction}
-PCOS was renamed PMOS in 2026 to emphasize that the condition is not only ovarian but also endocrine and metabolic \cite{endocrine,monash}. Our research question is: \textbf{among PCOS-positive participants, which measured variables are associated with BMI?} This matters statistically and clinically because BMI is related to metabolic risk, but the public dataset may not contain the direct metabolic variables needed to explain it.
+PCOS was renamed PMOS in 2026 to emphasize that the condition is not only ovarian but also endocrine and metabolic \cite{endocrine,monash}. That framing makes BMI important because body size and central adiposity are connected to long-term metabolic risk in this population.
+
+Rather than predicting diagnostic status, we focus on BMI within the PCOS-positive subset. Our research question is: \textbf{among PCOS-positive participants, which measured variables are associated with BMI?} This gives a direct test of whether the available clinical, reproductive, and laboratory variables capture the metabolic dimension implied by PMOS. Strong predictors would identify useful BMI-related markers; weak laboratory results would suggest that important metabolic biosignals are missing from the public dataset.
+
+\vspace{0.25em}
 
 \section{Data}
 The Kaggle workbook by Kottarathil contains 541 rows and 45 columns \cite{kaggle}. We restricted the main analysis to the 177 PCOS-positive participants. The BMI distribution was mildly right-skewed (skewness 0.230), with mean 25.47 and SD 4.40. A 95\% confidence interval for the mean BMI is (24.82, 26.12). The second Kaggle infertility file was audited separately; it appears to contain the same patients with offset IDs and duplicate AMH/beta-HCG fields, so it does not add fasting insulin, testosterone, fasting glucose, or HOMA-IR.
 
-\begin{figure*}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.94\textwidth]{../figures/stat501_core_plots.png}
 \caption{Distributions of BMI and waist-to-hip ratio, scatterplot for simple regression, and side-by-side BMI boxplots by cycle regularity.}
 \label{fig:core}
-\end{figure*}
+\end{figure}
 
 \section{Analysis}
 \begin{table}[H]
 \caption{Primary statistical results, with interpretation in context.}
 \label{tab:key}
-\small\resizebox{\columnwidth}{!}{\begin{tabular}{ll}
+\small\begin{tabular}{p{0.23\textwidth}p{0.68\textwidth}}
 \toprule
 Analysis & Result \\
 \midrule
@@ -68,7 +77,7 @@ Welch t-test & Irregular - regular mean diff 1.73, 95\% CI (0.46, 3.00), p=0.008
 One-way ANOVA & Follicle group F=0.10, p=0.9039 \\
 Clinical model & Adjusted R2=0.253; weight gain $p<0.001$ \\
 \bottomrule
-\end{tabular}}
+\end{tabular}
 \end{table}
 
 For the simple linear regression, the scatterplot does not show a strong linear trend. The estimated slope is 7.93, meaning a 1.0 increase in waist-to-hip ratio is associated with about 7.93 BMI units, but this effect is not statistically significant ($p=0.2678$). The correlation is weak ($r=0.084$), so waist-to-hip ratio alone is not a useful BMI predictor in this subset.
@@ -77,19 +86,20 @@ The Welch t-test compares two independent groups: regular versus irregular menst
 
 The ANOVA compares mean BMI across low, medium, and high follicle-count groups. The group means are very similar, and the ANOVA is not significant ($F=0.10$, $p=0.9039$). Since the overall ANOVA is not significant, Tukey multiple comparisons are not needed.
 
-\begin{figure*}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.94\textwidth]{../figures/stat501_anova_and_diagnostics.png}
 \caption{ANOVA boxplot and regression diagnostic plots. The residual plot shows no strong curved pattern, and the Q-Q plot is acceptable with some tail departures.}
 \label{fig:diagnostics}
-\end{figure*}
+\end{figure}
 
 As an exploratory linear-model extension, we compared predictor blocks using adjusted $R^2$. The clinical block has adjusted $R^2=0.253$, while the laboratory-only block has adjusted $R^2=-0.009$. The maximum non-intercept VIF in the full model is 1.23, so multicollinearity is not driving the result.
 
 \begin{table}[H]
 \caption{Linear-model block comparison for BMI.}
 \label{tab:block}
-\small\resizebox{\columnwidth}{!}{\begin{tabular}{lrrr}
+\centering
+\small\begin{tabular}{lrrr}
 \toprule
 Model block & n & Adj. $R^2$ & AIC \\
 \midrule
@@ -100,7 +110,7 @@ Clinical + lab & 177 & 0.237 & 992.2 \\
 Clinical + ultrasound & 177 & 0.265 & 985.5 \\
 Full multimodal & 177 & 0.250 & 993.8 \\
 \bottomrule
-\end{tabular}}
+\end{tabular}
 \end{table}
 
 \section{Conclusions}

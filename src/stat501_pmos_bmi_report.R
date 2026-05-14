@@ -15,6 +15,12 @@ dir.create(reports_dir, showWarnings = FALSE, recursive = TRUE)
 if (!requireNamespace("readxl", quietly = TRUE)) {
   stop("Package 'readxl' is required. Install with: install.packages('readxl')")
 }
+if (!requireNamespace("ggplot2", quietly = TRUE)) {
+  stop("Package 'ggplot2' is required. Install with: install.packages('ggplot2')")
+}
+
+library(ggplot2)
+library(grid)
 
 num <- function(x) suppressWarnings(as.numeric(x))
 fmt <- function(x, digits = 3) formatC(x, digits = digits, format = "f")
@@ -153,31 +159,85 @@ write.csv(key_results, file.path(results_dir, "stat501_key_results_r.csv"), row.
 write.csv(vif_table, file.path(results_dir, "stat501_vif_values_r.csv"), row.names = FALSE)
 write.csv(block_table, file.path(results_dir, "stat501_model_blocks_r.csv"), row.names = FALSE)
 
+theme_report <- function(base_size = 12) {
+  theme_minimal(base_size = base_size) +
+    theme(
+      plot.title = element_text(face = "bold", color = "#1f2f2f", margin = margin(b = 6)),
+      axis.title = element_text(color = "#1f2f2f"),
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(color = "#dde6e2", linewidth = 0.35),
+      plot.background = element_rect(fill = "white", color = NA),
+      panel.background = element_rect(fill = "white", color = NA)
+    )
+}
+
+place_plot <- function(plot, row, col) {
+  print(plot, vp = viewport(layout.pos.row = row, layout.pos.col = col))
+}
+
+p_bmi <- ggplot(pcos, aes(x = bmi)) +
+  geom_histogram(bins = 18, fill = "#2f6f73", color = "white", linewidth = 0.25) +
+  geom_vline(xintercept = bmi_mean, color = "#1f2f2f", linewidth = 1) +
+  labs(title = "BMI distribution", x = "BMI", y = "Count") +
+  theme_report()
+
+p_whr <- ggplot(simple_df, aes(x = waist_hip_ratio)) +
+  geom_histogram(bins = 16, fill = "#7a9e7e", color = "white", linewidth = 0.25) +
+  labs(title = "Waist-to-hip ratio distribution", x = "Waist-to-hip ratio", y = "Count") +
+  theme_report()
+
+p_scatter <- ggplot(simple_df, aes(x = waist_hip_ratio, y = bmi)) +
+  geom_point(color = "#2f6f73", alpha = 0.58, size = 1.9) +
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "#9a4a44", linewidth = 0.9) +
+  labs(title = "BMI vs. waist-to-hip ratio", x = "Waist-to-hip ratio", y = "BMI") +
+  theme_report()
+
+p_cycle <- ggplot(cycle_df, aes(x = cycle_group, y = bmi, fill = cycle_group)) +
+  geom_boxplot(width = 0.58, alpha = 0.75, outlier.shape = NA, color = "#263332") +
+  geom_jitter(width = 0.11, alpha = 0.35, size = 1.45, color = "#1f2f2f") +
+  scale_fill_manual(values = c("Regular" = "#b9c8a8", "Irregular" = "#d49a3a")) +
+  labs(title = "BMI by cycle regularity", x = "Cycle group", y = "BMI") +
+  guides(fill = "none") +
+  theme_report()
+
 png(file.path(fig_dir, "stat501_core_plots.png"), width = 1800, height = 1250, res = 180)
-par(mfrow = c(2, 2), mar = c(4.2, 4.2, 2.6, 1), oma = c(0, 0, 1.4, 0), bg = "white")
-hist(pcos$bmi, breaks = 18, col = "#2f6f73", border = "white", main = "BMI Distribution", xlab = "BMI")
-abline(v = bmi_mean, col = "black", lwd = 2)
-hist(simple_df$waist_hip_ratio, breaks = 16, col = "#7a9e7e", border = "white", main = "Waist-to-Hip Ratio", xlab = "Waist-to-hip ratio")
-plot(simple_df$waist_hip_ratio, simple_df$bmi, pch = 19, col = rgb(47, 111, 115, 150, maxColorValue = 255),
-     main = "BMI vs Waist-to-Hip Ratio", xlab = "Waist-to-hip ratio", ylab = "BMI")
-abline(simple_model, col = "#9a4a44", lwd = 2)
-boxplot(bmi ~ cycle_group, data = cycle_df, col = c("#b9c8a8", "#d49a3a"), border = "#333333",
-        main = "BMI by Cycle Regularity", xlab = "Cycle group", ylab = "BMI")
-stripchart(bmi ~ cycle_group, data = cycle_df, vertical = TRUE, method = "jitter", pch = 19,
-           col = rgb(0, 0, 0, 80, maxColorValue = 255), add = TRUE)
-mtext("BMI and Clinical Predictors", outer = TRUE, font = 2, cex = 1.1)
+grid.newpage()
+grid.text("BMI and Clinical Predictors", x = 0.5, y = 0.985, gp = gpar(fontface = "bold", fontsize = 17, col = "#1f2f2f"))
+pushViewport(viewport(y = 0.48, height = 0.92, layout = grid.layout(2, 2)))
+place_plot(p_bmi, 1, 1)
+place_plot(p_whr, 1, 2)
+place_plot(p_scatter, 2, 1)
+place_plot(p_cycle, 2, 2)
+popViewport()
 dev.off()
 
+diag_df <- data.frame(fitted = fitted(full_model), residual = resid(full_model))
+p_anova <- ggplot(anova_df, aes(x = follicle_group, y = bmi, fill = follicle_group)) +
+  geom_boxplot(width = 0.58, alpha = 0.75, color = "#263332") +
+  scale_fill_manual(values = c("Low" = "#b9c8a8", "Medium" = "#d7c46a", "High" = "#d49a3a")) +
+  labs(title = "BMI by follicle group", x = "Follicle group", y = "BMI") +
+  guides(fill = "none") +
+  theme_report()
+
+p_resid <- ggplot(diag_df, aes(x = fitted, y = residual)) +
+  geom_hline(yintercept = 0, color = "#263332", linewidth = 0.55) +
+  geom_point(color = "#2f6f73", alpha = 0.58, size = 1.8) +
+  labs(title = "Residuals vs. fitted BMI", x = "Fitted BMI", y = "Residual") +
+  theme_report()
+
+p_qq <- ggplot(diag_df, aes(sample = residual)) +
+  stat_qq(color = "#2f6f73", alpha = 0.62, size = 1.8) +
+  stat_qq_line(color = "#9a4a44", linewidth = 0.85) +
+  labs(title = "Normal Q-Q plot", x = "Theoretical quantiles", y = "Sample quantiles") +
+  theme_report()
+
 png(file.path(fig_dir, "stat501_anova_and_diagnostics.png"), width = 1800, height = 850, res = 180)
-par(mfrow = c(1, 3), mar = c(4.2, 4.2, 2.8, 1), bg = "white")
-boxplot(bmi ~ follicle_group, data = anova_df, col = c("#b9c8a8", "#d7c46a", "#d49a3a"),
-        border = "#333333", main = "ANOVA: BMI by Follicle Group", xlab = "Follicle group", ylab = "BMI")
-plot(fitted(full_model), resid(full_model), pch = 19, col = rgb(47, 111, 115, 150, maxColorValue = 255),
-     main = "Regression Residuals", xlab = "Fitted BMI", ylab = "Residuals")
-abline(h = 0, lwd = 2)
-qqnorm(resid(full_model), pch = 19, col = rgb(47, 111, 115, 150, maxColorValue = 255),
-       main = "Normal Q-Q")
-qqline(resid(full_model), col = "#9a4a44", lwd = 2)
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(1, 3)))
+place_plot(p_anova, 1, 1)
+place_plot(p_resid, 1, 2)
+place_plot(p_qq, 1, 3)
+popViewport()
 dev.off()
 
 png(file.path(fig_dir, "stat501_model_block_r2.png"), width = 1200, height = 800, res = 180)
@@ -205,8 +265,8 @@ latex_key_rows <- paste(
 vif_max <- max(vif_table$VIF, na.rm = TRUE)
 
 tex <- paste0(
-"\\documentclass[10pt,twocolumn]{article}
-\\usepackage[margin=0.68in]{geometry}
+"\\documentclass[11pt]{article}
+\\usepackage[margin=0.84in]{geometry}
 \\usepackage{booktabs}
 \\usepackage{graphicx}
 \\usepackage{hyperref}
@@ -218,14 +278,18 @@ tex <- paste0(
 \\usepackage{float}
 \\usepackage{xcolor}
 \\usepackage{enumitem}
-\\usepackage{cuted}
 \\captionsetup{font=small,labelfont=bf}
 \\hypersetup{colorlinks=true,urlcolor=blue,citecolor=blue,linkcolor=blue}
 \\definecolor{cardbg}{HTML}{F2F7F5}
 \\definecolor{cardline}{HTML}{2F6F73}
-\\setlist[itemize]{leftmargin=*, itemsep=1pt, topsep=2pt}
-\\newcommand{\\infocard}[2]{\\vspace{0.35em}\\noindent\\fcolorbox{cardline}{cardbg}{\\begin{minipage}{0.94\\columnwidth}\\textbf{#1}\\par\\vspace{0.2em}#2\\end{minipage}}\\vspace{0.45em}}
-\\newcommand{\\snapshot}[1]{\\begin{strip}\\vspace{-0.8em}\\noindent\\fcolorbox{cardline}{cardbg}{\\begin{minipage}{0.965\\textwidth}#1\\end{minipage}}\\vspace{-0.4em}\\end{strip}}
+\\setlist[itemize]{leftmargin=1.25em, itemsep=1pt, topsep=2pt}
+\\setlength{\\parindent}{0pt}
+\\setlength{\\parskip}{0.58em}
+\\setlength{\\textfloatsep}{1.0em}
+\\setlength{\\floatsep}{0.9em}
+\\setlength{\\intextsep}{0.9em}
+\\renewcommand{\\arraystretch}{1.18}
+\\newcommand{\\snapshot}[1]{\\vspace{0.85em}\\noindent\\fcolorbox{cardline}{cardbg}{\\begin{minipage}{0.955\\textwidth}\\vspace{0.25em}\\small #1\\vspace{0.15em}\\end{minipage}}\\vspace{0.95em}}
 
 \\title{Clinical Predictors of BMI in PCOS/PMOS}
 \\author{Soumitra Das \\and Shreya Saha \\and Anjali Kanvinde \\and Shivraj Singh Bhatti \\and Pranav Jeyakumar}
@@ -238,6 +302,7 @@ tex <- paste0(
 \\begin{abstract}
 We analyze a public Kaggle dataset on polycystic ovary syndrome, now more precisely framed as polyendocrine metabolic ovarian syndrome (PMOS), to ask which measured clinical and hormonal variables are associated with BMI among PCOS-positive participants. The analysis uses descriptive statistics, confidence intervals, correlation, simple linear regression, Welch's two-sample t-test, one-way ANOVA, and linear-model diagnostics. The key finding is that self-reported weight gain is the strongest BMI-related variable, while the available laboratory variables explain little BMI variation because direct metabolic biosignals such as fasting insulin and HOMA-IR are absent.
 \\end{abstract}
+\\vspace{0.2em}
 
 \\snapshot{\\textbf{Study Snapshot}\\vspace{0.25em}
 \\begin{itemize}
@@ -249,29 +314,33 @@ We analyze a public Kaggle dataset on polycystic ovary syndrome, now more precis
 \\end{itemize}}
 
 \\section{Introduction}
-PCOS was renamed PMOS in 2026 to emphasize that the condition is not only ovarian but also endocrine and metabolic \\cite{endocrine,monash}. Our research question is: \\textbf{among PCOS-positive participants, which measured variables are associated with BMI?} This matters statistically and clinically because BMI is related to metabolic risk, but the public dataset may not contain the direct metabolic variables needed to explain it.
+PCOS was renamed PMOS in 2026 to emphasize that the condition is not only ovarian but also endocrine and metabolic \\cite{endocrine,monash}. That framing makes BMI important because body size and central adiposity are connected to long-term metabolic risk in this population.
+
+Rather than predicting diagnostic status, we focus on BMI within the PCOS-positive subset. Our research question is: \\textbf{among PCOS-positive participants, which measured variables are associated with BMI?} This gives a direct test of whether the available clinical, reproductive, and laboratory variables capture the metabolic dimension implied by PMOS. Strong predictors would identify useful BMI-related markers; weak laboratory results would suggest that important metabolic biosignals are missing from the public dataset.
+
+\\vspace{0.25em}
 
 \\section{Data}
 The Kaggle workbook by Kottarathil contains 541 rows and 45 columns \\cite{kaggle}. We restricted the main analysis to the 177 PCOS-positive participants. The BMI distribution was mildly right-skewed (skewness ", fmt(bmi_skew, 3), "), with mean ", fmt(bmi_mean, 2), " and SD ", fmt(bmi_sd, 2), ". A 95\\% confidence interval for the mean BMI is (", fmt(bmi_ci[1], 2), ", ", fmt(bmi_ci[2], 2), "). The second Kaggle infertility file was audited separately; it appears to contain the same patients with offset IDs and duplicate AMH/beta-HCG fields, so it does not add fasting insulin, testosterone, fasting glucose, or HOMA-IR.
 
-\\begin{figure*}[t]
+\\begin{figure}[H]
 \\centering
 \\includegraphics[width=0.94\\textwidth]{../figures/stat501_core_plots.png}
 \\caption{Distributions of BMI and waist-to-hip ratio, scatterplot for simple regression, and side-by-side BMI boxplots by cycle regularity.}
 \\label{fig:core}
-\\end{figure*}
+\\end{figure}
 
 \\section{Analysis}
 \\begin{table}[H]
 \\caption{Primary statistical results, with interpretation in context.}
 \\label{tab:key}
-\\small\\resizebox{\\columnwidth}{!}{\\begin{tabular}{ll}
+\\small\\begin{tabular}{p{0.23\\textwidth}p{0.68\\textwidth}}
 \\toprule
 Analysis & Result \\\\
 \\midrule
 ", latex_key_rows, "
 \\bottomrule
-\\end{tabular}}
+\\end{tabular}
 \\end{table}
 
 For the simple linear regression, the scatterplot does not show a strong linear trend. The estimated slope is ", fmt(coef(simple_model)[2], 2), ", meaning a 1.0 increase in waist-to-hip ratio is associated with about ", fmt(coef(simple_model)[2], 2), " BMI units, but this effect is not statistically significant ($p=", fmt(simple_cor$p.value, 4), "$). The correlation is weak ($r=", fmt(simple_cor$estimate, 3), "$), so waist-to-hip ratio alone is not a useful BMI predictor in this subset.
@@ -280,25 +349,26 @@ The Welch t-test compares two independent groups: regular versus irregular menst
 
 The ANOVA compares mean BMI across low, medium, and high follicle-count groups. The group means are very similar, and the ANOVA is not significant ($F=", fmt(anova_out$`F value`[1], 2), "$, $p=", fmt(anova_out$`Pr(>F)`[1], 4), "$). Since the overall ANOVA is not significant, Tukey multiple comparisons are not needed.
 
-\\begin{figure*}[t]
+\\begin{figure}[H]
 \\centering
 \\includegraphics[width=0.94\\textwidth]{../figures/stat501_anova_and_diagnostics.png}
 \\caption{ANOVA boxplot and regression diagnostic plots. The residual plot shows no strong curved pattern, and the Q-Q plot is acceptable with some tail departures.}
 \\label{fig:diagnostics}
-\\end{figure*}
+\\end{figure}
 
 As an exploratory linear-model extension, we compared predictor blocks using adjusted $R^2$. The clinical block has adjusted $R^2=", fmt(summary(clinical_model)$adj.r.squared, 3), "$, while the laboratory-only block has adjusted $R^2=", fmt(block_table$AdjR2[block_table$Model == "Laboratory only"], 3), "$. The maximum non-intercept VIF in the full model is ", fmt(vif_max, 2), ", so multicollinearity is not driving the result.
 
 \\begin{table}[H]
 \\caption{Linear-model block comparison for BMI.}
 \\label{tab:block}
-\\small\\resizebox{\\columnwidth}{!}{\\begin{tabular}{lrrr}
+\\centering
+\\small\\begin{tabular}{lrrr}
 \\toprule
 Model block & n & Adj. $R^2$ & AIC \\\\
 \\midrule
 ", latex_block_rows, "
 \\bottomrule
-\\end{tabular}}
+\\end{tabular}
 \\end{table}
 
 \\section{Conclusions}
@@ -315,4 +385,5 @@ The strongest BMI-related signal in this dataset is self-reported weight gain. C
 ")
 
 writeLines(sub("\\n+$", "", tex), file.path(reports_dir, "stat501_pmos_bmi_final.tex"))
-capture.output(sessionInfo(), file = file.path(results_dir, "stat501_r_session_info.txt"))
+session_lines <- capture.output(sessionInfo())
+writeLines(sub("[[:space:]]+$", "", session_lines), file.path(results_dir, "stat501_r_session_info.txt"))
